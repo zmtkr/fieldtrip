@@ -74,7 +74,7 @@ function [type] = ft_filetype(filename, desired, varargin)
 %  - NIRx *.tpl, *.wl1 and *.wl2
 %  - York Instruments *.meghdf5
 
-% Copyright (C) 2003-2023, Robert Oostenveld
+% Copyright (C) 2003-2024, Robert Oostenveld
 %
 % This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
@@ -160,6 +160,12 @@ if isempty(filename)
     type = false;
     return
   end
+end
+
+% some of the code does not work well on matlab strings, (i.e. "" vs ''),
+% specifically ["a" "b"] yields something different than ['a' 'b']. 
+if isstring(filename)
+  filename = char(filename);
 end
 
 % the parts of the filename are used further down
@@ -610,6 +616,10 @@ elseif filetype_check_extension(filename, '.pos')
   type = 'polhemus_pos';
   manufacturer = 'BrainProducts/CTF/Polhemus?'; % actually I don't know whose software it is
   content = 'electrode positions';
+elseif filetype_check_extension(filename, '.txt') && filetype_header_contains(filename, 'FastSCAN', 300)
+  type = 'fastscan_txt';
+  manufacturer = 'Polhemus FastSCAN';
+  content = 'headshape points';
 
   % known Blackrock Microsystems file types
 elseif strncmp(x,'.ns',3) && (filetype_check_header(filename, 'NEURALCD') || filetype_check_header(filename, 'NEURALSG'))
@@ -1629,6 +1639,14 @@ elseif filetype_check_extension(filename, '.vtk') && filetype_check_header(filen
   type = 'vtk';
   manufacturer = 'ParaView';
   content = 'geometrical meshes';
+elseif filetype_check_extension(filename, '.bin') && exist(fullfile(p, [f '.meta']), 'file') 
+  type = 'spikeglx_bin';
+  manufacturer = 'SpikeGLX';
+  content = 'neuropixel data';
+elseif filetype_check_extension(filename, '.meta') && exist(fullfile(p, [f '.bin']), 'file') 
+  type = 'spikeglx_bin';
+  manufacturer = 'SpikeGLX';
+  content = 'neuropixel data';
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1797,6 +1815,23 @@ if haslfp || hasmua || hasspike
   end
 
   res=any(ft_filetype(neuralynxdirs, 'neuralynx_ds'));
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SUBFUNCTION that checks whether the file contains only ascii characters
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function res = filetype_header_contains(filename, pat, len)
+if exist(filename, 'file')
+  fid = fopen(filename, 'rt');
+  try
+    str = fread(fid, [1 len], 'uint8=>char');
+  catch
+    str = fread(fid, [1 inf], 'uint8=>char');
+  end
+  fclose(fid);
+  res = contains(str, pat);
+else
+  res = false;
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

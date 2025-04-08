@@ -9,9 +9,9 @@ function ft_plot_headmodel(headmodel, varargin)
 %   ft_plot_headmodel(headmodel, ...)
 %
 % Optional arguments should come in key-value pairs and can include
-%   'facecolor'    = [r g b] values or string, for example 'brain', 'cortex', 'skin', 'black', 'red', 'r', or an Nx3 or Nx1 array where N is the number of faces
-%   'vertexcolor'  = [r g b] values or string, for example 'brain', 'cortex', 'skin', 'black', 'red', 'r', or an Nx3 or Nx1 array where N is the number of vertices
-%   'edgecolor'    = [r g b] values or string, for example 'brain', 'cortex', 'skin', 'black', 'red', 'r'
+%   'facecolor'    = [r g b] values or string, for example 'skin', 'skull', 'brain', 'black', 'red', 'r', or an Nx3 or Nx1 array where N is the number of faces
+%   'vertexcolor'  = [r g b] values or string, for example 'skin', 'skull', 'brain', 'black', 'red', 'r', or an Nx3 or Nx1 array where N is the number of vertices
+%   'edgecolor'    = [r g b] values or string, for example 'skin', 'skull', 'brain', 'black', 'red', 'r'
 %   'faceindex'    = true or false
 %   'vertexindex'  = true or false
 %   'facealpha'    = transparency, between 0 and 1 (default = 1)
@@ -32,7 +32,7 @@ function ft_plot_headmodel(headmodel, varargin)
 % FT_PLOT_HEADSHAPE, FT_PLOT_SENS, FT_PLOT_DIPOLE, FT_PLOT_ORTHO, FT_PLOT_TOPO3D
 
 % Copyright (C) 2009, Cristiano Micheli
-% Copyright (C) 2009-2023, Robert Oostenveld
+% Copyright (C) 2009-2024, Robert Oostenveld
 %
 % This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.

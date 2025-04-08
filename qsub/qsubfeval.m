@@ -83,7 +83,12 @@ optbeg = optbeg | strcmp('nargout',       strargin);
 optbeg = optbeg | strcmp('whichfunction', strargin);
 optbeg = optbeg | strcmp('waitfor',       strargin);
 optbeg = find(optbeg);
-optarg = varargin(optbeg:end);
+if ~isempty(optbeg)
+  optbeg = optbeg(1);
+  optarg = varargin(optbeg:end);
+else
+  optarg = [];
+end
 
 % check the required input arguments
 ft_checkopt(optarg, 'memreq', 'numericscalar');
@@ -144,7 +149,7 @@ if compiled
 end
 
 hostname = gethostname();
-if isempty(queue) && ~compiled && (~isempty(regexp(hostname, '^dccn-c', 'once')) || ~isempty(regexp(hostname, '^mentat', 'once')))
+if isempty(queue) && ~compiled && (~isempty(regexp(hostname, '^dccn-c', 'once')) || ~isempty(regexp(hostname, '^mentat', 'once'))) && isequal(backend, 'torque')
   % At the DCCN we want the non-compiled distributed MATLAB jobs to be queued in the "matlab" queue. This
   % routes them to specific multi-core machines and limits the number of licenses that can be claimed at once.
   queue = 'matlab';

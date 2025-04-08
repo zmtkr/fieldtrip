@@ -492,15 +492,35 @@ switch eventformat
       hdr = ft_read_header(filename);
     end
     % the following applies to Biosemi data that is stored in the gdf format
-    statusindx = find(strcmp(hdr.label, 'STATUS'));
-    if length(statusindx)==1
-      % represent the rising flanks in the STATUS channel as events
-      event = read_trigger(filename, 'header', hdr, 'dataformat', dataformat, 'begsample', flt_minsample, 'endsample', flt_maxsample, 'chanindx', statusindx, 'detectflank', 'up', 'trigshift', trigshift, 'trigpadding', trigpadding, 'fixbiosemi', true);
-    else
-      ft_warning('BIOSIG does not have a consistent event representation, skipping events')
-      event = [];
+    if ~isempty(chanindx)
+      chanindx = find(strcmp(hdr.label, 'STATUS'));
     end
-
+    event = [];
+    if length(chanindx)==1
+      % represent the rising flanks in the STATUS (or user specified) channel as events
+      event = read_trigger(filename, 'header', hdr, 'dataformat', dataformat, 'begsample', flt_minsample, 'endsample', flt_maxsample, 'chanindx', chanindx, 'detectflank', detectflank, 'trigshift', trigshift, 'trigpadding', trigpadding, 'fixbiosemi', true);
+    else
+      ft_warning('data does not have a STATUS channel');
+    end
+    
+    % make an attempt to get the events from the BIOSIG hdr
+    if isfield(hdr.orig, 'EVENT')
+      % this is code that has been inspired by eeglab's biosig2eeglabevent
+      event_hdr = biosig2fieldtripevent(hdr.orig.EVENT);
+    else 
+      event_hdr = [];
+    end
+    
+    if ~isempty(event) && ~isempty(event_hdr)
+      % merge the two structs
+      event = appendstruct(event(:), event_hdr(:));
+      smp   = [event.sample];
+      [srt, indx] = sort(smp);
+      event = event(indx);
+    elseif isempty(event) && ~isempty(event_hdr)
+      event = event_hdr(:);
+    end
+    
   case 'AnyWave'
     event = read_ah5_markers(hdr, filename);
 
@@ -565,7 +585,7 @@ switch eventformat
     end
 
     try
-      % read the trigger codes from the STIM channel, usefull for (pseudo) continuous data
+      % read the trigger codes from the STIM channel, useful for (pseudo) continuous data
       % this splits the trigger channel into the lowers and highest 16 bits,
       % corresponding with the front and back panel of the electronics cabinet at the Donders Centre
       [backpanel, frontpanel] = read_ctf_trigger(filename);
@@ -1285,7 +1305,7 @@ switch eventformat
     end
     if ~isempty(chanindx)
       % also parse the selected channels for TTL triggers
-      trigger = read_trigger(filename, 'header', hdr, 'dataformat', dataformat, 'begsample', flt_minsample, 'endsample', flt_maxsample, 'chanindx', chanindx, 'detectflank', detectflank, 'denoise', denoise, 'trigshift', trigshift, 'trigpadding', trigpadding, 'threshold', threshold, 'denoise', denoise);
+      trigger = read_trigger(filename, 'header', hdr, 'dataformat', dataformat, 'begsample', flt_minsample, 'endsample', flt_maxsample, 'chanindx', chanindx, 'detectflank', detectflank, 'denoise', denoise, 'trigshift', trigshift, 'trigpadding', trigpadding, 'threshold', threshold);
       event = appendstruct(event, trigger);
     end
 
@@ -1339,7 +1359,7 @@ switch eventformat
       udp=pnet('udpsocket',port);
       % Wait/Read udp packet to read buffer
       len=pnet(udp,'readpacket');
-      if len>0,
+      if len>0
         % if packet larger then 1 byte then read maximum of 1000 doubles in network byte order
         msg=pnet(udp,'read',1000,'uint8');
         if ~isempty(msg)
@@ -1368,8 +1388,20 @@ switch eventformat
     end
 
   case 'gtec_hdf5'
-    % the header mentions trigger channels, but I don't know how they are stored
-    ft_warning('event reading for hdf5 has not yet been implemented due to a lack of a good example file');
+    % 
+    if isempty(hdr)
+      hdr = ft_read_header(filename);
+    end
+    for i=1:length(hdr.orig.AsynchronData.Time)
+      % the type ID appears to be zero-offset
+      this = hdr.orig.AsynchronData.AsynchronSignalTypes(hdr.orig.AsynchronData.TypeID(i)+1);
+      % there are multiple informative fields in the description
+      event(end+1).type       = this.AsynchronSignalDescription.Name;
+      event(end  ).sample     = hdr.orig.AsynchronData.Time(i);
+      event(end  ).value      = hdr.orig.AsynchronData.Value(i);
+      event(end  ).duration   = 0;
+      event(end  ).offset     = 0;
+    end
 
   case 'gtec_mat'
     if isempty(hdr)
@@ -1392,17 +1424,17 @@ switch eventformat
     if isempty(chanindx)
       % look in nirs.s for events, this corresponds to the stimulus channels
       chanindx = find(ft_chantype(hdr, 'stimulus'));
-      trigger = read_trigger(filename, 'header', hdr, 'dataformat', dataformat, 'begsample', flt_minsample, 'endsample', flt_maxsample, 'chanindx', chanindx, 'detectflank', detectflank, 'denoise', denoise, 'trigshift', trigshift, 'trigpadding', trigpadding, 'threshold', threshold, 'denoise', denoise, 'fixhomer', true);
+      trigger = read_trigger(filename, 'header', hdr, 'dataformat', dataformat, 'begsample', flt_minsample, 'endsample', flt_maxsample, 'chanindx', chanindx, 'detectflank', detectflank, 'denoise', denoise, 'trigshift', trigshift, 'trigpadding', trigpadding, 'threshold', threshold, 'fixhomer', true);
       event = appendstruct(event, trigger);
       if isempty(event)
         % also look in nirs.aux for channels with analog TTL values
         chanindx = find(ft_chantype(hdr, 'aux'));
-        trigger = read_trigger(filename, 'header', hdr, 'dataformat', dataformat, 'begsample', flt_minsample, 'endsample', flt_maxsample, 'chanindx', chanindx, 'detectflank', detectflank, 'denoise', denoise, 'trigshift', trigshift, 'trigpadding', trigpadding, 'threshold', threshold, 'denoise', denoise, 'fixhomer', true);
+        trigger = read_trigger(filename, 'header', hdr, 'dataformat', dataformat, 'begsample', flt_minsample, 'endsample', flt_maxsample, 'chanindx', chanindx, 'detectflank', detectflank, 'denoise', denoise, 'trigshift', trigshift, 'trigpadding', trigpadding, 'threshold', threshold, 'fixhomer', true);
         event = appendstruct(event, trigger);
       end
     else
       % use the user-supplied list of channels
-      trigger = read_trigger(filename, 'header', hdr, 'dataformat', dataformat, 'begsample', flt_minsample, 'endsample', flt_maxsample, 'chanindx', chanindx, 'detectflank', detectflank, 'denoise', denoise, 'trigshift', trigshift, 'trigpadding', trigpadding, 'threshold', threshold, 'denoise', denoise, 'fixhomer', true);
+      trigger = read_trigger(filename, 'header', hdr, 'dataformat', dataformat, 'begsample', flt_minsample, 'endsample', flt_maxsample, 'chanindx', chanindx, 'detectflank', detectflank, 'denoise', denoise, 'trigshift', trigshift, 'trigpadding', trigpadding, 'threshold', threshold, 'fixhomer', true);
       event = appendstruct(event, trigger);
     end
 
@@ -1444,7 +1476,7 @@ switch eventformat
       else
         % use the user-supplied list of trigger channels
       end
-      trigger = read_trigger(filename, 'header', hdr, 'dataformat', dataformat, 'begsample', flt_minsample, 'endsample', flt_maxsample, 'chanindx', chanindx, 'detectflank', detectflank, 'denoise', denoise, 'trigshift', trigshift, 'trigpadding', trigpadding, 'threshold', threshold, 'denoise', denoise);
+      trigger = read_trigger(filename, 'header', hdr, 'dataformat', dataformat, 'begsample', flt_minsample, 'endsample', flt_maxsample, 'chanindx', chanindx, 'detectflank', detectflank, 'denoise', denoise, 'trigshift', trigshift, 'trigpadding', trigpadding, 'threshold', threshold);
       event = appendstruct(event, trigger);
     end
 

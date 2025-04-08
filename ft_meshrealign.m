@@ -51,7 +51,7 @@ function [mesh_realigned] = ft_meshrealign(cfg, mesh)
 %
 % See also FT_READ_HEADSHAPE, FT_PREPARE_MESH, FT_ELECTRODEREALIGN, FT_VOLUMEREALIGN
 
-% Copyrights (C) 2017-2023, Robert Oostenveld
+% Copyrights (C) 2017-2024, Robert Oostenveld
 %
 % This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
@@ -512,7 +512,11 @@ else
       
       lab = 'crosshair';
       vox = [xi yi zi];
-      ind = sub2ind(mri.dim(1:3), round(vox(1)), round(vox(2)), round(vox(3)));
+      if all(isfinite(vox))
+        ind = sub2ind(mri.dim(1:3), round(vox(1)), round(vox(2)), round(vox(3)));
+      else
+        ind = nan;  % functional behavior of sub2ind has changed, giving an error with nan-input
+      end
       pos = ft_warp_apply(mri.transform, vox);
       switch opt.unit
         case 'mm'
@@ -529,7 +533,11 @@ else
     for i=1:length(opt.fidlabel)
       lab = opt.fidlabel{i};
       vox = opt.fiducial.(lab);
-      ind = sub2ind(mri.dim(1:3), round(vox(1)), round(vox(2)), round(vox(3)));
+      if all(isfinite(vox))
+        ind = sub2ind(mri.dim(1:3), round(vox(1)), round(vox(2)), round(vox(3)));
+      else
+        ind = nan; % functional behavior of sub2ind has changed, giving an error with nan-input
+      end
       pos = ft_warp_apply(mri.transform, vox);
       switch opt.unit
         case 'mm'

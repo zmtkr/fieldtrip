@@ -10,8 +10,8 @@ function [source] = ft_sourceanalysis(cfg, data, baseline)
 %
 % where the second input argument with the data should be organised in a structure
 % as obtained from the FT_FREQANALYSIS or FT_TIMELOCKANALYSIS function. The
-% configuration "cfg" is a structure containing information about source positions
-% and other options.
+% configuration "cfg" is a structure containing the specification of the head model,
+% the source model, and other options.
 %
 % The different source reconstruction algorithms that are implemented are
 %   cfg.method     = 'lcmv'    linear constrained minimum variance beamformer
@@ -294,6 +294,18 @@ if ~isempty(cfg.supchan)
   assert(numel(cfg.supchan)>0, 'cfg.supchan is not present in the data');
 end
 
+% also do some checks which are conditional on the presence of spatial filters or precomputed leadfields
+if isfield(cfg.sourcemodel, 'leadfield') && isempty(cfg.refdip) && isempty(cfg.supdip)
+  cfg = ft_checkconfig(cfg, 'unused', {'reducerank' 'backproject' 'normalize' 'normalizeparam' 'weight'});
+end
+if isfield(cfg.sourcemodel, 'filter') && isempty(cfg.refdip) && isempty(cfg.supdip)
+  % these are options for forward computation
+  cfg = ft_checkconfig(cfg, 'unused', {'reducerank' 'backproject' 'normalize' 'normalizeparam' 'weight'});
+
+  % these are options for inverse computation
+  cfg.(cfg.method) = ft_checkconfig(cfg.(cfg.method), 'unused', {'lambda' 'kappa' 'tol' 'invmethod' 'fixedori' 'weightnorm' 'subspace'});
+end
+
 % spectrally decomposed data can have label and/or labelcmb
 if ~isfield(data, 'label') && isfield(data, 'labelcmb')
   % the code further down assumes that data.label is present
@@ -393,7 +405,7 @@ if ~isempty(cfg.refdip) || ~isempty(cfg.supdip)
   
 elseif isfield(cfg.sourcemodel, 'filter')
   ft_notice('using precomputed filters, not computing any leadfields');
-  sourcemodel = keepfields(cfg.sourcemodel, {'pos', 'tri', 'dim', 'inside', 'filter', 'filterdimord', 'label', 'cfg'});
+  sourcemodel = keepfields(cfg.sourcemodel, {'pos', 'tri', 'dim', 'unit', 'coordsys', 'inside', 'filter', 'filterdimord', 'label', 'cfg'});
   
   if ~isfield(sourcemodel, 'label')
     ft_warning('the labels are missing for the precomputed filters, assuming that they were computed with the same channel selection');
@@ -428,7 +440,7 @@ elseif isfield(cfg.sourcemodel, 'filter')
   
 elseif isfield(cfg.sourcemodel, 'leadfield')
   ft_notice('using precomputed leadfields');
-  sourcemodel = keepfields(cfg.sourcemodel, {'pos', 'tri', 'dim', 'inside', 'leadfield', 'leadfielddimord', 'label', 'cfg', 'subspace'});
+  sourcemodel = keepfields(cfg.sourcemodel, {'pos', 'tri', 'dim', 'unit', 'coordsys', 'inside', 'leadfield', 'leadfielddimord', 'label', 'cfg', 'subspace'});
   
   if ~isfield(sourcemodel, 'label')
     ft_warning('the labels are missing for the precomputed leadfields, assuming that they were computed with the same channel selection');
@@ -477,6 +489,10 @@ elseif istrue(cfg.keepleadfield) || istrue(cfg.permutation) || istrue(cfg.random
   end
   sourcemodel = ft_prepare_leadfield(tmpcfg);
   
+  % these need to be removed from the cfg, otherwise the low-level inverse
+  % function may throw an error, see https://github.com/fieldtrip/fieldtrip/pull/2468
+  cfg = ft_checkconfig(cfg, 'unused', {'reducerank' 'backproject' 'normalize' 'normalizeparam' 'weight'});
+
   % no further forward computations are needed, but keep them in the cfg
   needheadmodel = false;
   headmodel = [];
@@ -1122,10 +1138,13 @@ elseif istimelock && any(strcmp(cfg.method, {'lcmv', 'sam', 'mne', 'harmony', 'r
     for i=1:Nrepetitions
       fprintf('estimating current density distribution for repetition %d\n', i);
       squeeze_avg = reshape(avg(i,:,:),[size_avg(2) size_avg(3)]);
-      if hascovariance
+      if hascovariance && ~isfield(sourcemodel, 'filter')
         squeeze_Cy  = reshape(Cy(i,:,:), [size_Cy(2)  size_Cy(3)]);
         dip(i) = ft_inverse_mne(sourcemodel, sens, headmodel, squeeze_avg, methodopt{:}, leadfieldopt{:}, 'noisecov', squeeze_Cy);
       else
+        if isfield(sourcemodel, 'filter') && hascovariance
+          ft_warning('spatial filter has been provided, not using the noise covariance matrix for the computations');
+        end
         dip(i) = ft_inverse_mne(sourcemodel, sens, headmodel, squeeze_avg, methodopt{:}, leadfieldopt{:});
       end
     end
@@ -1219,14 +1238,14 @@ end % if freq or timelock or comp data
 % clean up and collect the results
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-source = copyfields(sourcemodel, source, {'pos', 'tri', 'dim', 'inside', 'leadfield', 'leadfielddimord', 'label', 'cfg'});
+source = copyfields(sourcemodel, source, {'pos', 'tri', 'dim', 'unit', 'coordsys', 'inside', 'leadfield', 'leadfielddimord', 'label', 'cfg'});
 
 if exist('dip', 'var')
   % the fields in the dip structure might be more recent than those in the sourcemodel structure
-  source = copyfields(dip, source, {'pos', 'tri', 'dim', 'inside', 'leadfield', 'leadfielddimord', 'label', 'cfg'});
+  source = copyfields(dip, source, {'pos', 'tri', 'dim', 'unit', 'coordsys', 'inside', 'leadfield', 'leadfielddimord', 'label', 'cfg'});
   
   % prevent duplication of these fields when copying the content of dip into source.avg or source.trial
-  dip    = removefields(dip,       {'pos', 'tri', 'dim', 'inside', 'leadfield', 'leadfielddimord', 'label', 'cfg'});
+  dip    = removefields(dip,       {'pos', 'tri', 'dim', 'unit', 'coordsys', 'inside', 'leadfield', 'leadfielddimord', 'label', 'cfg'});
   
   if istrue(cfg.(cfg.method).keepfilter) && isfield(dip(1), 'filter')
     for k=1:numel(dip)

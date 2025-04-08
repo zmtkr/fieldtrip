@@ -13,9 +13,9 @@ function write_vtk(fn, pos, tri, val)
 % The optional val argument can be used to write scalar or vector values for
 % each vertex or element.
 %
-% See also READ_VTK, WRITE_PLY
+% See also READ_VTK, READ_VTK_XML, WRITE_PLY
 
-% Copyright (C) 2002-2023, Robert Oostenveld
+% Copyright (C) 2002-2024, Robert Oostenveld
 %
 % This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
