@@ -724,8 +724,8 @@ if isempty(cfg.outputfile)
     ft_error('cfg.suffix is required to construct BIDS output directory and file');
   else
     dirname = datatype2dirname(cfg.suffix);
-    %filename = ['sub-' cfg.sub];
-    filename = cfg.sub;
+    filename = ['sub-' cfg.sub];
+    % filename = cfg.sub;
     filename = add_entity(filename, 'ses',  cfg.ses);
     filename = add_entity(filename, 'task', cfg.task);
     filename = add_entity(filename, 'tracksys', cfg.tracksys);
@@ -749,11 +749,11 @@ if isempty(cfg.outputfile)
     if ~isempty(cfg.ses)
         % construct the output filename, with session directory
         %cfg.outputfile = fullfile(cfg.bidsroot, ['sub-' cfg.sub], ['ses-' cfg.ses], dirname, filename);
-        cfg.outputfile = fullfile(cfg.bidsroot, cfg.sub, sprintf('ses-%03d', cfg.ses), dirname, filename);
+        cfg.outputfile = fullfile(cfg.bidsroot, ['sub-', cfg.sub], sprintf('ses-%03d', cfg.ses), dirname, filename);
     else
         % construct the output filename, without session directory
         %cfg.outputfile = fullfile(cfg.bidsroot, ['sub-' cfg.sub], dirname, filename);
-        cfg.outputfile = fullfile(cfg.bidsroot, cfg.sub, dirname, filename);
+        cfg.outputfile = fullfile(cfg.bidsroot, ['sub-', cfg.sub], dirname, filename);
     end
     if strcmp(cfg.method, 'copy') && ~isempty(cfg.dataset)
       % copy the file extension from the input dataset
@@ -2133,7 +2133,7 @@ if ~isempty(cfg.bidsroot)
 
   this = table();
   % this.participant_id = {['sub-' cfg.sub]};   % comment out by zama @ 03/19/2024
-  this.participant_id = cfg.sub;                % add by zama @ 03/19/2024
+  this.participant_id = ['sub-', cfg.sub];                % add by zama @ 03/19/2024
   fn = fieldnames(cfg.participants);
   for i=1:numel(fn)
     % write [] as 'n/a'
@@ -2161,11 +2161,11 @@ if ~isempty(cfg.bidsroot)
   if ~isempty(cfg.ses)
     % construct the output filename, with session directory
     % filename = fullfile(cfg.bidsroot, ['sub-' cfg.sub], ['ses-' cfg.ses], ['sub-' cfg.sub '_' 'ses-' cfg.ses '_scans.tsv']);  
-    filename = fullfile(cfg.bidsroot, cfg.sub, ['ses-' sprintf('%03d',cfg.ses)], [cfg.sub, '_', 'ses-', sprintf('%03d',cfg.ses), '_scans.tsv']);
+    filename = fullfile(cfg.bidsroot, ['sub-', cfg.sub], ['ses-', sprintf('%03d',cfg.ses)], ['sub-', cfg.sub, '_', 'ses-', sprintf('%03d',cfg.ses), '_scans.tsv']);
   else
     % construct the output filename, without session directory
     % filename = fullfile(cfg.bidsroot, ['sub-' cfg.sub], ['sub-' cfg.sub '_scans.tsv']);
-    filename = fullfile(cfg.bidsroot, cfg.sub, [cfg.sub '_scans.tsv']);
+    filename = fullfile(cfg.bidsroot, ['sub-', cfg.sub], ['sub-', cfg.sub, '_scans.tsv']);
   end
   % to here ----------
 
@@ -2202,7 +2202,7 @@ if ~isempty(cfg.bidsroot)
   if ~isempty(cfg.ses)
     % construct the output filename
     % filename = fullfile(cfg.bidsroot, ['sub-' cfg.sub], ['sub-' cfg.sub '_sessions.tsv']); % comment out by zama @ 03/19/2024
-    filename = fullfile(cfg.bidsroot, cfg.sub, [cfg.sub '_sessions.tsv']);
+    filename = fullfile(cfg.bidsroot, ['sub-' , cfg.sub], ['sub-' , cfg.sub, '_sessions.tsv']);
 
     % construct session identifier
     this = table();
