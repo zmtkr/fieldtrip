@@ -1893,12 +1893,6 @@ switch cfg.method
             cfg.outputfile = fullfile(p, [f '.vhdr']);
             ft_info('writing ''%s''\n', cfg.outputfile);
 
-            %  zama add 2025/04/08-----
-            if isstruct(hdr.chanunit{contains(hdr.chantype, 'Markers')})
-                hdr.chanunit{contains(hdr.chantype, 'Markers')} = 'microvolts';
-            end
-            % =====
-
             ft_write_data(cfg.outputfile, dat, 'dataformat', 'brainvision_eeg', 'header', hdr, 'event', trigger);
 
           case {'nirs'}
