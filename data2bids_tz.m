@@ -1892,6 +1892,13 @@ switch cfg.method
             [p, f, x] = fileparts(cfg.outputfile);
             cfg.outputfile = fullfile(p, [f '.vhdr']);
             ft_info('writing ''%s''\n', cfg.outputfile);
+
+            %  zama add 2025/04/08-----
+            if isstruct(hdr.chanunit{contains(hdr.chantype, 'Markers')})
+                hdr.chanunit{contains(hdr.chantype, 'Markers')} = 'microvolts';
+            end
+            % =====
+
             ft_write_data(cfg.outputfile, dat, 'dataformat', 'brainvision_eeg', 'header', hdr, 'event', trigger);
 
           case {'nirs'}
@@ -2077,10 +2084,10 @@ for i=1:numel(modality)
           existing      = output_compatible(existing);
           if strcmp(modality{i}, 'events')
             % merge complete rows
-            modality_tsv = mergetable(modality_tsv, existing);
+            modality_tsv = mergetable_tz(modality_tsv, existing);   % zama changed 2025/04/08
           else
             % use the channel name as the unique key
-            modality_tsv = mergetable(modality_tsv, existing, 'name');
+            modality_tsv = mergetable_tz(modality_tsv, existing, 'name'); % zama changed 2025/04/08
           end
         end
         ft_write_tsv(filename, modality_tsv);
