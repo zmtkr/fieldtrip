@@ -749,7 +749,7 @@ if isempty(cfg.outputfile)
     if ~isempty(cfg.ses)
         % construct the output filename, with session directory
         %cfg.outputfile = fullfile(cfg.bidsroot, ['sub-' cfg.sub], ['ses-' cfg.ses], dirname, filename);
-        cfg.outputfile = fullfile(cfg.bidsroot, ['sub-', cfg.sub], sprintf('ses-%03d', cfg.ses), dirname, filename);
+        cfg.outputfile = fullfile(cfg.bidsroot, ['sub-', cfg.sub], ['ses-', cfg.ses], dirname, filename);
     else
         % construct the output filename, without session directory
         %cfg.outputfile = fullfile(cfg.bidsroot, ['sub-' cfg.sub], dirname, filename);
@@ -2161,7 +2161,7 @@ if ~isempty(cfg.bidsroot)
   if ~isempty(cfg.ses)
     % construct the output filename, with session directory
     % filename = fullfile(cfg.bidsroot, ['sub-' cfg.sub], ['ses-' cfg.ses], ['sub-' cfg.sub '_' 'ses-' cfg.ses '_scans.tsv']);  
-    filename = fullfile(cfg.bidsroot, ['sub-', cfg.sub], ['ses-', sprintf('%03d',cfg.ses)], ['sub-', cfg.sub, '_', 'ses-', sprintf('%03d',cfg.ses), '_scans.tsv']);
+    filename = fullfile(cfg.bidsroot, ['sub-', cfg.sub], ['ses-', cfg.ses], ['sub-', cfg.sub, '_', 'ses-', cfg.ses, '_scans.tsv']);
   else
     % construct the output filename, without session directory
     % filename = fullfile(cfg.bidsroot, ['sub-' cfg.sub], ['sub-' cfg.sub '_scans.tsv']);
