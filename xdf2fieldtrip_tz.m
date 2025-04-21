@@ -66,7 +66,15 @@ assert(sum(~cellfun(@isempty, {streamindx, streamkeywords, streamrate}))<=1, 'yo
 ft_hastoolbox('xdf', 1);
 
 % read all streams
-streams = load_xdf(filename);
+try
+    streams = load_xdf(filename);
+catch MEload
+    if contains(MEload.message, "invalid XML character")
+        streams = load_xdf_skipxmlreadError( filename );
+    else
+        rethrow(MEload);
+    end
+end
 
 % initialize an array of booleans indicating whether the streams are continuous
 iscontinuous = false(size(streams));
